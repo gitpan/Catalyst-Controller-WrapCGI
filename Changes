@@ -8,3 +8,6 @@ Revision history for Catalyst-Controller-WrapCGI
 
 0.0022  2008-07-04 02:52:52
     Fixed test shell script portability and missing dep on Class::C3
+
+0.0024  2008-11-19 16:00:54
+    Fixed for Catalyst 5.8
