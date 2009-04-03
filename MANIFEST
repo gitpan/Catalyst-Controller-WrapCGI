@@ -14,12 +14,13 @@ lib/Catalyst/Controller/CGIBin.pm
 lib/Catalyst/Controller/WrapCGI.pm
 lib/CatalystX/GlobalContext.pm
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 META.yml
 README
 t/00-load.t
 t/boilerplate.t
 t/cgibin.t
+t/env.t
 t/global-context.t
 t/lib/TestApp.pm
 t/lib/TestApp/Controller/Root.pm

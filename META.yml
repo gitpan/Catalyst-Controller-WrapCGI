@@ -4,9 +4,11 @@ author:
   - 'Matt S. Trout <mst@shadowcat.co.uk>'
 build_requires:
   Catalyst::Plugin::Static::Simple: 0
-  Test::More: 0
+  Test::More: 0.86
+configure_requires:
+  ExtUtils::MakeMaker: 6.50
 distribution_type: module
-generated_by: 'Module::Install version 0.78'
+generated_by: 'Module::Install version 0.81'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -18,7 +20,7 @@ no_index:
     - t
 requires:
   Catalyst: 5.7007
-  Class::C3: 0
+  Class::C3: 0.20
   File::Find::Rule: 0
   File::Slurp: 0
   HTTP::Request::AsCGI: 0
@@ -29,4 +31,4 @@ requires:
   parent: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.0026
+version: 0.0027
