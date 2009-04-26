@@ -1,8 +1,9 @@
 package Catalyst::Controller::WrapCGI;
 
-use strict;
-use warnings;
-use parent 'Catalyst::Controller';
+use Moose;
+use mro 'c3';
+
+extends 'Catalyst::Controller';
 
 use HTTP::Request::AsCGI;
 use HTTP::Request;
@@ -15,11 +16,11 @@ Catalyst::Controller::WrapCGI - Run CGIs in Catalyst
 
 =head1 VERSION
 
-Version 0.0028
+Version 0.0029
 
 =cut
 
-our $VERSION = '0.0028';
+our $VERSION = '0.0029';
 
 =head1 SYNOPSIS
 

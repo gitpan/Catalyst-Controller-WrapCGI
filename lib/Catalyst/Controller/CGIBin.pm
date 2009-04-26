@@ -1,10 +1,10 @@
 package Catalyst::Controller::CGIBin;
 
-use strict;
-use warnings;
-
-use MRO::Compat;
+use Moose;
 use mro 'c3';
+
+extends 'Catalyst::Controller::WrapCGI';
+
 use File::Slurp 'slurp';
 use File::Find::Rule ();
 use Catalyst::Exception ();
@@ -16,19 +16,17 @@ use IO::File ();
 use Carp;
 use namespace::clean -except => 'meta';
 
-use parent 'Catalyst::Controller::WrapCGI';
-
 =head1 NAME
 
 Catalyst::Controller::CGIBin - Serve CGIs from root/cgi-bin
 
 =head1 VERSION
 
-Version 0.006
+Version 0.007
 
 =cut
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 
 =head1 SYNOPSIS
 
@@ -39,7 +37,7 @@ In your controller:
     use parent qw/Catalyst::Controller::CGIBin/;
 
     # example of a forward to /cgi-bin/hlagh/mtfnpy.cgi
-    sub dongs : Local Args(0) {
+    sub serve_cgi : Local Args(0) {
         my ($self, $c) = @_;
         $c->forward($self->cgi_action('hlagh/mtfnpy.cgi'));
     }
@@ -47,6 +45,7 @@ In your controller:
 In your .conf:
 
     <Controller::Foo>
+        cgi_root_path cgi-bin
         <CGI>
             username_field username # used for REMOTE_USER env var
             pass_env PERL5LIB
@@ -64,16 +63,12 @@ for every invocation. If this is something you need, let me know.
 
 CGI paths are converted into action names using cgi_action (below.)
 
-A path such as C<root/cgi-bin/hlagh/bar.cgi> will get the private path
-C<foo/CGI_hlagh_bar_cgi>, for controller Foo, with the C</>s converted to C<_>s
-and prepended with C<CGI_>, as well as all non-word characters converted to
-C<_>s. This is because L<Catalyst> action names can't have non-word characters
-in them.
-
 Inherits from L<Catalyst::Controller::WrapCGI>, see the documentation for that
 module for configuration information.
 
 =cut
+
+has cgi_root_path => (is => 'ro', isa => 'Str', default => 'cgi-bin');
 
 sub register_actions {
     my ($self, $app) = @_;
@@ -91,8 +86,9 @@ sub register_actions {
 
         my $path        = join '/' => splitdir($cgi_path);
         my $action_name = $self->cgi_action($path);
+        my $public_path = $self->cgi_path($path);
         my $reverse     = $namespace ? "$namespace/$action_name" : $action_name;
-        my $attrs       = { Path => [ "cgi-bin/$path" ], Args => [ 0 ] };
+        my $attrs       = { Path => [ $public_path ], Args => [ 0 ] };
 
         my ($cgi, $type);
 
@@ -134,21 +130,48 @@ sub register_actions {
 
 =head1 METHODS
 
-=head2 $self->cgi_action($cgi_path)
+=head2 $self->cgi_action($cgi)
 
 Takes a path to a CGI from C<root/cgi-bin> such as C<foo/bar.cgi> and returns
 the action name it is registered as. See L</DESCRIPTION> for a discussion on how
 CGI actions are named.
+
+A path such as C<root/cgi-bin/hlagh/bar.cgi> will get the private path
+C<foo/CGI_hlagh__bar_cgi>, for controller Foo, with the C</>s converted to C<__>
+and prepended with C<CGI_>, as well as all non-word characters converted to
+C<_>s. This is because L<Catalyst> action names can't have non-word characters
+in them.
+
+This means that C<foo/bar.cgi> and C<foo__bar.cgi> for example will both map to
+the action C<CGI_foo__bar_cgi> so B<DON'T DO THAT>.
 
 =cut
 
 sub cgi_action {
     my ($self, $cgi) = @_;
 
-    my $action_name = 'CGI_' . join '_' => split '/' => $cgi;
+    my $action_name = 'CGI_' . join '__' => split '/' => $cgi;
     $action_name    =~ s/\W/_/g;
 
     $action_name
+}
+
+=head2 $self->cgi_path($cgi)
+
+Takes a path to a CGI from C<root/cgi-bin> such as C<foo/bar.cgi> and returns
+the public path it should be registered under.
+
+The default is to prefix with the C<cgi_root_path> config setting, or if not set
+uses C<cgi-bin/$cgi>.
+
+=cut
+
+sub cgi_path {
+    my ($self, $cgi) = @_;
+
+    my $root = $self->cgi_root_path;
+    $root =~ s{/*$}{};
+    return "$root/$cgi";
 }
 
 =head2 $self->is_perl_cgi($path)
@@ -185,11 +208,14 @@ sub is_perl_cgi {
 Takes the path to a Perl CGI and returns a coderef suitable for passing to
 cgi_to_response (from L<Catalyst::Controller::WrapCGI>.)
 
-C<$action_name> is the generated name for the action representing the CGI file.
+C<$action_name> is the generated name for the action representing the CGI file
+from C<cgi_action>.
 
 This is similar to how L<ModPerl::Registry> works, but will only work for
 well-written CGIs. Otherwise, you may have to override this method to do
 something more involved (see L<ModPerl::PerlRun>.)
+
+Scripts with C<__DATA__> sections now work too.
 
 =cut
 
@@ -198,17 +224,38 @@ sub wrap_perl_cgi {
 
     my $code = slurp $cgi;
 
-    $code =~ s/^__DATA__\r?\n(.*)//ms;
+    $code =~ s/^__DATA__(?:\r?\n|\r\n?)(.*)//ms;
     my $data = $1;
 
     my $coderef = do {
         no warnings;
+        # catch exit() and turn it into (effectively) a return
+        # we *must* eval STRING because the code needs to be compiled with the
+        # overridden CORE::GLOBAL::exit in view
+        #
+        # set $0 to the name of the cgi file in case it's used there
         eval ' 
+            my $cgi_exited = "EXIT\n";
+            BEGIN { *CORE::GLOBAL::exit = sub (;$) {
+                die [ $cgi_exited, $_[0] || 0 ];
+            } }
             package Catalyst::Controller::CGIBin::_CGIs_::'.$action_name.';
             sub {'
                 . 'local *DATA;'
                 . q{open DATA, '<', \$data;}
+                . qq{local \$0 = "\Q$cgi\E";}
+                . q/my $rv = eval {/
                 . $code
+                . q/};/
+                . q{
+                    return $rv unless $@;
+                    die $@ if $@ and not (
+                      ref($@) eq 'ARRAY' and
+                      $@->[0] eq $cgi_exited
+                    );
+                    die "exited nonzero: $@->[1]" if $@->[1] != 0;
+                    return $rv;
+                }
          . '}';
     };
 
