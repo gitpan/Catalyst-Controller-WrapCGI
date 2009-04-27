@@ -30,9 +30,10 @@ t/lib/TestCGIBin/Controller/CGIHandler.pm
 t/lib/TestCGIBin/root/cgi-bin/exit.pl
 t/lib/TestCGIBin/root/cgi-bin/path/test.pl
 t/lib/TestCGIBin/root/cgi-bin/path/testdata.pl
+t/lib/TestCGIBin/root/cgi-bin/pathinfo.pl
 t/lib/TestCGIBin/root/cgi-bin/test.sh
 t/lib/TestCGIBinRoot.pm
 t/lib/TestCGIBinRoot/Controller/CGIHandler.pm
-t/lib/TestCGIBinRoot/root/cgi-bin/path/test.pl
+t/lib/TestCGIBinRoot/root/cgi/path/test.pl
 t/pod.t
 t/wrap-cgi.t

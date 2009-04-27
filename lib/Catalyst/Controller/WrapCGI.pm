@@ -5,10 +5,13 @@ use mro 'c3';
 
 extends 'Catalyst::Controller';
 
-use HTTP::Request::AsCGI;
-use HTTP::Request;
-use URI;
+use HTTP::Request::AsCGI ();
+use HTTP::Request ();
+use URI ();
 use Catalyst::Exception ();
+use URI::Escape;
+
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -16,11 +19,11 @@ Catalyst::Controller::WrapCGI - Run CGIs in Catalyst
 
 =head1 VERSION
 
-Version 0.0029
+Version 0.0030
 
 =cut
 
-our $VERSION = '0.0029';
+our $VERSION = '0.0030';
 
 =head1 SYNOPSIS
 
@@ -91,17 +94,20 @@ open my $REAL_STDOUT, ">>&=".fileno(*STDOUT);
 
 =head1 METHODS
 
-=head2 $self->cgi_to_response($c, $coderef)
+=head2 cgi_to_response
+
+C<<$self->cgi_to_response($c, $coderef)>>
 
 Does the magic of running $coderef in a CGI environment, and populating the
 appropriate parts of your Catalyst context with the results.
 
-Calls wrap_cgi (below.)
+Calls L</wrap_cgi>.
 
 =cut
 
 sub cgi_to_response {
   my ($self, $c, $script) = @_;
+
   my $res = $self->wrap_cgi($c, $script);
 
   # if the CGI doesn't set the response code but sets location they were
@@ -118,7 +124,9 @@ sub cgi_to_response {
   $c->res->headers($res->headers);
 }
 
-=head2 $self->wrap_cgi($c, $coderef)
+=head2 wrap_cgi
+
+C<<$self->wrap_cgi($c, $coderef)>>
 
 Runs $coderef in a CGI environment using L<HTTP::Request::AsCGI>, returns an
 L<HTTP::Response>.
@@ -129,9 +137,76 @@ The environment variables to pass on are taken from the configuration for your
 Controller, see L</SYNOPSIS> for an example. If you don't supply a list of
 environment variables to pass, the whole of %ENV is used.
 
-Used by cgi_to_response (above), which is probably what you want to use as well.
+Used by L</cgi_to_response>, which is probably what you want to use as well.
 
 =cut
+
+sub wrap_cgi {
+  my ($self, $c, $call) = @_;
+  my $req = HTTP::Request->new(
+    map { $c->req->$_ } qw/method uri headers/
+  );
+  my $body = $c->req->body;
+  my $body_content = '';
+
+  $req->content_type($c->req->content_type); # set this now so we can override
+
+  if ($body) { # Slurp from body filehandle
+    local $/; $body_content = <$body>;
+  } else {
+    my $body_params = $c->req->body_parameters;
+    if (%$body_params) {
+      my $encoder = URI->new;
+      $encoder->query_form(%$body_params);
+      $body_content = $encoder->query;
+      $req->content_type('application/x-www-form-urlencoded');
+    }
+  }
+
+  my $filtered_env = $self->_filtered_env(\%ENV);
+
+  $req->content($body_content);
+  $req->content_length(length($body_content));
+
+  my $username_field = $self->{CGI}{username_field} || 'username';
+
+  my $username = (($c->can('user_exists') && $c->user_exists)
+               ? eval { $c->user->obj->$username_field }
+                : '');
+
+  my $path_info = '/'.join '/' => map uri_escape_utf8($_), @{ $c->req->args };
+
+  my $env = HTTP::Request::AsCGI->new(
+              $req,
+              ($username ? (REMOTE_USER => $username) : ()),
+              %$filtered_env,
+              PATH_INFO => $path_info,
+              FILEPATH_INFO => '/'.$c->action.$path_info, # eww
+              SCRIPT_NAME => $c->uri_for($c->action)->path
+            );
+
+  {
+    local *STDIN = $REAL_STDIN;   # restore the real ones so the filenos
+    local *STDOUT = $REAL_STDOUT; # are 0 and 1 for the env setup
+
+    my $old = select($REAL_STDOUT); # in case somebody just calls 'print'
+
+    my $saved_error;
+
+    $env->setup;
+    eval { $call->() };
+    $saved_error = $@;
+    $env->restore;
+
+    select($old);
+
+    Catalyst::Exception->throw(
+        message => "CGI invocation failed: $saved_error"
+    ) if $saved_error;
+  }
+
+  return $env->response;
+}
 
 sub _filtered_env {
   my ($self, $env) = @_;
@@ -169,66 +244,7 @@ sub _filtered_env {
   return { map {; $_ => $env->{$_} } @ok };
 }
 
-sub wrap_cgi {
-  my ($self, $c, $call) = @_;
-  my $req = HTTP::Request->new(
-    map { $c->req->$_ } qw/method uri headers/
-  );
-  my $body = $c->req->body;
-  my $body_content = '';
-
-  $req->content_type($c->req->content_type); # set this now so we can override
-
-  if ($body) { # Slurp from body filehandle
-    local $/; $body_content = <$body>;
-  } else {
-    my $body_params = $c->req->body_parameters;
-    if (%$body_params) {
-      my $encoder = URI->new;
-      $encoder->query_form(%$body_params);
-      $body_content = $encoder->query;
-      $req->content_type('application/x-www-form-urlencoded');
-    }
-  }
-
-  my $filtered_env = $self->_filtered_env(\%ENV);
-
-  $req->content($body_content);
-  $req->content_length(length($body_content));
-
-  my $username_field = $self->{CGI}{username_field} || 'username';
-
-  my $username = (($c->can('user_exists') && $c->user_exists)
-               ? eval { $c->user->obj->$username_field }
-                : '');
-  my $env = HTTP::Request::AsCGI->new(
-              $req,
-              ($username ? (REMOTE_USER => $username) : ()),
-              %$filtered_env,
-            );
-
-  {
-    local *STDIN = $REAL_STDIN;   # restore the real ones so the filenos
-    local *STDOUT = $REAL_STDOUT; # are 0 and 1 for the env setup
-
-    my $old = select($REAL_STDOUT); # in case somebody just calls 'print'
-
-    my $saved_error;
-
-    $env->setup;
-    eval { $call->() };
-    $saved_error = $@;
-    $env->restore;
-
-    select($old);
-
-    Catalyst::Exception->throw(
-        message => "CGI invocation failed: $saved_error"
-    ) if $saved_error;
-  }
-
-  return $env->response;
-}
+__PACKAGE__->meta->make_immutable;
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -239,9 +255,17 @@ Original development sponsored by L<http://www.altinity.com/>
 L<Catalyst::Controller::CGIBin>, L<CatalystX::GlobalContext>,
 L<Catalyst::Controller>, L<CGI>, L<Catalyst>
 
-=head1 AUTHOR
+=head1 AUTHORS
+
+Originally written by:
 
 Matt S. Trout, C<< <mst at shadowcat.co.uk> >>
+
+Contributors:
+
+Rafael Kitover C<< <rkitover at cpan.org> >>
+
+Hans Dieter Pearcey C<< <hdp at cpan.org> >>
 
 =head1 BUGS
 
