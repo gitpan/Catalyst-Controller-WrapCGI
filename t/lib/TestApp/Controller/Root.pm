@@ -8,7 +8,16 @@ __PACKAGE__->config->{namespace} = '';
 my $cgi = sub {
     my $cgi = CGI->new;
     print $cgi->header;
-    print 'foo:',$cgi->param('foo'),' bar:',$cgi->param('bar')
+    print 'foo:',$cgi->param('foo'),' bar:',$cgi->param('bar');
+    if (my $fh = $cgi->param('baz')) {
+      local $/;
+      print ' baz:',<$fh>;
+    }
+    if (my $fh = $cgi->param('quux')) {
+      local $/;
+      print ' quux:',<$fh>;
+    }
+    die $cgi->cgi_error if $cgi->cgi_error;
 };
 
 sub handle_cgi : Path('/cgi-bin/test.cgi') {

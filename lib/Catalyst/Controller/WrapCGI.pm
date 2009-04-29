@@ -10,6 +10,7 @@ use HTTP::Request ();
 use URI ();
 use Catalyst::Exception ();
 use URI::Escape;
+use HTTP::Request::Common;
 
 use namespace::clean -except => 'meta';
 
@@ -19,11 +20,11 @@ Catalyst::Controller::WrapCGI - Run CGIs in Catalyst
 
 =head1 VERSION
 
-Version 0.0032
+Version 0.0033
 
 =cut
 
-our $VERSION = '0.0032';
+our $VERSION = '0.0033';
 
 =head1 SYNOPSIS
 
@@ -76,8 +77,9 @@ variables or regular expressions to remove from the environment before passing
 it to your CGIs.  Entries surrounded by C</> characters are considered regular
 expressions.
 
-Default is to pass the whole of C<%ENV>, except for C<MOD_PERL> (that is, the
-default C<kill_env> is C<[ 'MOD_PERL' ]>.
+Default is to pass the whole of C<%ENV>, except for C<MOD_PERL> and
+C<CONTENT_TYPE> (that is, the default C<kill_env> is C<[ qw(MOD_PERL
+CONTENT_TYPE) ]>.
 
 C<< $your_controller->{CGI}{username_field} >> should be the field for your user's name, which will be
 read from C<< $c->user->obj >>. Defaults to 'username'.
@@ -155,7 +157,28 @@ sub wrap_cgi {
     local $/; $body_content = <$body>;
   } else {
     my $body_params = $c->req->body_parameters;
-    if (%$body_params) {
+
+    if (my %uploads = %{ $c->req->uploads }) {
+      my $post = POST 'http://localhost/',
+        Content_Type => 'form-data',
+        Content => [
+          %$body_params,
+          map {
+            my $upl = $uploads{$_};
+            $_ => [
+              undef,
+              $upl->filename,
+              Content => $upl->slurp,
+              map {
+                my $header = $_;
+                map { $header => $_ } $upl->headers->header($header)
+              } $upl->headers->header_field_names
+            ]
+          } keys %uploads
+        ];
+      $body_content = $post->content;
+      $req->content_type($post->header('Content-Type'));
+    } elsif (%$body_params) {
       my $encoder = URI->new;
       $encoder->query_form(%$body_params);
       $body_content = $encoder->query;
@@ -217,7 +240,7 @@ sub _filtered_env {
   $pass_env = [ $pass_env ] unless ref $pass_env;
 
   my $kill_env = $self->{CGI}{kill_env};
-  $kill_env = [ 'MOD_PERL' ] unless defined $kill_env;
+  $kill_env = [ 'MOD_PERL', 'CONTENT_TYPE' ] unless defined $kill_env;
   $kill_env = [ $kill_env ]  unless ref $kill_env;
 
   if (@$pass_env) {
