@@ -34,4 +34,4 @@ requires:
   parent: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.0036
+version: 0.0037
