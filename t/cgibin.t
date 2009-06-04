@@ -6,7 +6,7 @@ use warnings;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 use Catalyst::Test 'TestCGIBin';
 use HTTP::Request::Common;
@@ -20,6 +20,11 @@ my $response = request POST '/my-bin/path/test.pl', [
 ];
 
 is($response->content, 'foo:bar bar:baz', 'POST to Perl CGI File');
+
+$response = request '/my-bin/path/test.pl?foo=bar&bar=baz';
+
+is($response->content, 'foo:bar bar:baz',
+    'Perl CGI File invoked with query params');
 
 $response = request POST '/my-bin/exit.pl', [
     name => 'world',
@@ -61,6 +66,9 @@ is($response->content, '/path/info',
 SKIP: {
     skip "Can't run shell scripts on non-*nix", 1
         if $^O eq 'MSWin32' || $^O eq 'VMS';
+
+# for some reason the +x is not preserved in the dist
+    system "chmod +x $Bin/lib/TestCGIBin/root/cgi-bin/test.sh";
 
     is(get('/my-bin/test.sh'), "Hello!\n", 'Non-Perl CGI File');
 }
