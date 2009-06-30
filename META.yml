@@ -23,13 +23,13 @@ no_index:
 provides:
   Catalyst::Controller::CGIBin:
     file: lib/Catalyst/Controller/CGIBin.pm
-    version: 0.019
+    version: 0.020
   Catalyst::Controller::WrapCGI:
     file: lib/Catalyst/Controller/WrapCGI.pm
-    version: 0.019
+    version: 0.020
   CatalystX::GlobalContext:
     file: lib/CatalystX/GlobalContext.pm
-    version: 0.019
+    version: 0.020
 requires:
   Catalyst: 5.80002
   File::Find::Rule: 0
@@ -45,4 +45,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Controller-WrapCGI/
-version: 0.019
+version: 0.020
