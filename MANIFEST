@@ -22,6 +22,7 @@ t/cgibin.t
 t/cgibin_root.t
 t/env.t
 t/global-context.t
+t/lib/Dongs.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Controller/Root.pm
 t/lib/TestCGIBin.pm
@@ -34,5 +35,7 @@ t/lib/TestCGIBin/root/cgi-bin/test.sh
 t/lib/TestCGIBinRoot.pm
 t/lib/TestCGIBinRoot/Controller/CGIHandler.pm
 t/lib/TestCGIBinRoot/root/cgi/path/test.pl
+t/lib/TestGC.pm
+t/lib/TestGC/Controller/Root.pm
 t/pod.t
 t/wrap-cgi.t
