@@ -6,7 +6,7 @@ build_requires:
   CGI: 0
   Catalyst::Plugin::Static::Simple: 0
   ExtUtils::MakeMaker: 6.42
-  Test::More: 0.86
+  Test::More: 0.92
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
@@ -23,17 +23,18 @@ no_index:
 provides:
   Catalyst::Controller::CGIBin:
     file: lib/Catalyst/Controller/CGIBin.pm
-    version: 0.022
+    version: 0.023
   Catalyst::Controller::WrapCGI:
     file: lib/Catalyst/Controller/WrapCGI.pm
-    version: 0.022
+    version: 0.023
   CatalystX::GlobalContext:
     file: lib/CatalystX/GlobalContext.pm
-    version: 0.022
+    version: 0.023
 requires:
   Catalyst: 5.80015
   File::Find::Rule: 0
   File::Slurp: 0
+  File::pushd: 0
   HTTP::Request::AsCGI: 0.8
   LWP: 0
   List::MoreUtils: 0
@@ -42,7 +43,8 @@ requires:
   URI: 1.37
   namespace::clean: 0
   parent: 0
+  perl: 5.8.1
 resources:
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Controller-WrapCGI/
-version: 0.022
+version: 0.023

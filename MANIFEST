@@ -31,6 +31,7 @@ t/lib/TestCGIBin/root/cgi-bin/exit.pl
 t/lib/TestCGIBin/root/cgi-bin/path/test.pl
 t/lib/TestCGIBin/root/cgi-bin/path/testdata.pl
 t/lib/TestCGIBin/root/cgi-bin/pathinfo.pl
+t/lib/TestCGIBin/root/cgi-bin/sigs.pl
 t/lib/TestCGIBin/root/cgi-bin/test.sh
 t/lib/TestCGIBinRoot.pm
 t/lib/TestCGIBinRoot/Controller/CGIHandler.pm
