@@ -28,6 +28,7 @@ t/lib/TestApp/Controller/Root.pm
 t/lib/TestCGIBin.pm
 t/lib/TestCGIBin/Controller/CGIHandler.pm
 t/lib/TestCGIBin/root/cgi-bin/exit.pl
+t/lib/TestCGIBin/root/cgi-bin/exit_nonzero.sh
 t/lib/TestCGIBin/root/cgi-bin/path/test.pl
 t/lib/TestCGIBin/root/cgi-bin/path/testdata.pl
 t/lib/TestCGIBin/root/cgi-bin/pathinfo.pl
