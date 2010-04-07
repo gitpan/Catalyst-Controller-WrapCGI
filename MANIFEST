@@ -19,7 +19,8 @@ META.yml
 README
 t/00-load.t
 t/cgibin.t
-t/cgibin_root.t
+t/cgibin_chain_root.t
+t/cgibin_root_path.t
 t/env.t
 t/global-context.t
 t/lib/Dongs.pm
@@ -29,11 +30,15 @@ t/lib/TestCGIBin.pm
 t/lib/TestCGIBin/Controller/CGIHandler.pm
 t/lib/TestCGIBin/root/cgi-bin/exit.pl
 t/lib/TestCGIBin/root/cgi-bin/exit_nonzero.sh
+t/lib/TestCGIBin/root/cgi-bin/ignored.cgi
 t/lib/TestCGIBin/root/cgi-bin/path/test.pl
 t/lib/TestCGIBin/root/cgi-bin/path/testdata.pl
 t/lib/TestCGIBin/root/cgi-bin/pathinfo.pl
 t/lib/TestCGIBin/root/cgi-bin/sigs.pl
 t/lib/TestCGIBin/root/cgi-bin/test.sh
+t/lib/TestCGIBinChainRoot.pm
+t/lib/TestCGIBinChainRoot/Controller/CGIHandler.pm
+t/lib/TestCGIBinChainRoot/root/cgi/path/test.pl
 t/lib/TestCGIBinRoot.pm
 t/lib/TestCGIBinRoot/Controller/CGIHandler.pm
 t/lib/TestCGIBinRoot/root/cgi/path/test.pl

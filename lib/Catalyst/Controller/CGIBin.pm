@@ -22,13 +22,9 @@ use namespace::clean -except => 'meta';
 
 Catalyst::Controller::CGIBin - Serve CGIs from root/cgi-bin
 
-=head1 VERSION
-
-Version 0.027
-
 =cut
 
-our $VERSION = '0.027';
+our $VERSION = '0.028';
 
 =head1 SYNOPSIS
 
@@ -41,8 +37,12 @@ In your controller:
 In your .conf:
 
     <Controller::Foo>
-        cgi_root_path cgi-bin
-        cgi_dir       cgi-bin
+        cgi_root_path    cgi-bin
+        cgi_dir          cgi-bin
+        cgi_chain_root   /optional/private/path/to/Chained/root
+        cgi_file_pattern *.cgi
+        # or regex
+        cgi_file_pattern /\.pl\z/
         <CGI>
             username_field username # used for REMOTE_USER env var
             pass_env PERL5LIB
@@ -69,15 +69,38 @@ module for other configuration information.
 
 The global URI path prefix for CGIs, defaults to C<cgi-bin>.
 
+=head2 cgi_chain_root
+
+By default L<Path|Catalyst::DispatchType::Path> actions are created for CGIs,
+but if you specify this option, the actions will be created as
+L<Chained|Catalyst::DispatchType::Chained> end-points, chaining off the
+specified private path.
+
+If this option is used, the L</cgi_root_path> option is ignored. The root path
+will be determined by your chain.
+
+The L<PathPart|Catalyst::DispatchType::Chained/PathPart> of the action will be
+the path to the CGI file.
+
 =head2 cgi_dir
 
 Path from which to read CGI files. Can be relative to C<$MYAPP_HOME/root> or
 absolute.  Defaults to C<$MYAPP_HOME/root/cgi-bin>.
 
+=head2 cgi_file_pattern
+
+By default all files in L</cgi_dir> will be loaded as CGIs, however, with this
+option you can specify either a glob or a regex to match the names of files you
+want to be loaded.
+
+Can be an array of globs/regexes as well.
+
 =cut
 
-has cgi_root_path => (is => 'ro', isa => 'Str', default => 'cgi-bin');
-has cgi_dir       => (is => 'ro', isa => 'Str', default => 'cgi-bin');
+has cgi_root_path    => (is => 'ro', isa => 'Str', default => 'cgi-bin');
+has cgi_chain_root   => (is => 'ro', isa => 'Str');
+has cgi_dir          => (is => 'ro', isa => 'Str', default => 'cgi-bin');
+has cgi_file_pattern => (is => 'rw', default => sub { ['*'] });
 
 sub register_actions {
     my ($self, $app) = @_;
@@ -90,7 +113,16 @@ sub register_actions {
 
     my $class = ref $self || $self;
 
-    for my $file (File::Find::Rule->file->in($cgi_bin)) {
+    my $patterns = $self->cgi_file_pattern;
+    $patterns = [ $patterns ] if not ref $patterns;
+    for my $pat (@$patterns) {
+        if ($pat =~ m{^/(.*)/\z}) {
+            $pat = qr/$1/;
+        }
+    }
+    $self->cgi_file_pattern($patterns);
+
+    for my $file (File::Find::Rule->file->name(@$patterns)->in($cgi_bin)) {
         my $cgi_path = abs2rel($file, $cgi_bin);
 
         next if any { $_ eq '.svn' } splitdir $cgi_path;
@@ -98,9 +130,16 @@ sub register_actions {
 
         my $path        = join '/' => splitdir($cgi_path);
         my $action_name = $self->cgi_action($path);
-        my $public_path = $self->cgi_path($path);
         my $reverse     = $namespace ? "$namespace/$action_name" : $action_name;
-        my $attrs       = { Path => [ $public_path ] };
+
+        my $attrs = do {
+            if (my $chain_root = $self->cgi_chain_root) {
+                { Chained => [ $chain_root ], PathPart => [ $path ], Args => [] };
+            }
+            else {
+                { Path => [ $self->cgi_path($path) ] };
+            }
+        };
 
         my ($cgi, $type);
 
@@ -343,5 +382,4 @@ under the same terms as Perl itself.
 =cut
 
 1; # End of Catalyst::Controller::CGIBin
-
-# vim: expandtab shiftwidth=4 ts=4 tw=80:
+# vim:et sw=4 sts=4 tw=0:
