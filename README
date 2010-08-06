@@ -1,43 +1,160 @@
-Catalyst-Controller-WrapCGI
+NAME
+    Catalyst::Controller::CGIBin - Serve CGIs from root/cgi-bin
 
-Some modules to help you port CGI/mod_perl code to Catalyst.
+SYNOPSIS
+    In your controller:
 
-INSTALLATION
+        package MyApp::Controller::Foo;
 
-To install this module, run the following commands:
+        use parent qw/Catalyst::Controller::CGIBin/;
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+    In your .conf:
 
-SUPPORT AND DOCUMENTATION
+        <Controller::Foo>
+            cgi_root_path    cgi-bin
+            cgi_dir          cgi-bin
+            cgi_chain_root   /optional/private/path/to/Chained/root
+            cgi_file_pattern *.cgi
+            # or regex
+            cgi_file_pattern /\.pl\z/
+            <CGI>
+                username_field username # used for REMOTE_USER env var
+                pass_env PERL5LIB
+                pass_env PATH
+                pass_env /^MYAPP_/
+            </CGI>
+        </Controller::Foo>
 
-After installing, you can find documentation for these modules with the
-perldoc command.
+DESCRIPTION
+    Dispatches to CGI files in root/cgi-bin for /cgi-bin/ paths.
 
-    perldoc Catalyst::Controller::CGIBin
-    perldoc Catalyst::Controller::WrapCGI
-    perldoc CatalystX::GlobalContext
+    Unlike ModPerl::Registry this module does _NOT_ stat and recompile the
+    CGI for every invocation. This may be supported in the future if there's
+    interest.
 
-You can also look for information at:
+    CGI paths are converted into action names using "cgi_action".
 
-    RT, CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Catalyst-Controller-WrapCGI
+    Inherits from Catalyst::Controller::WrapCGI, see the documentation for
+    that module for other configuration information.
 
-    AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Catalyst-Controller-WrapCGI
+CONFIG PARAMS
+  cgi_root_path
+    The global URI path prefix for CGIs, defaults to "cgi-bin".
 
-    CPAN Ratings
-        http://cpanratings.perl.org/d/Catalyst-Controller-WrapCGI
+  cgi_chain_root
+    By default Path actions are created for CGIs, but if you specify this
+    option, the actions will be created as Chained end-points, chaining off
+    the specified private path.
 
-    Search CPAN
-        http://search.cpan.org/dist/Catalyst-Controller-WrapCGI
+    If this option is used, the "cgi_root_path" option is ignored. The root
+    path will be determined by your chain.
 
+    The PathPart of the action will be the path to the CGI file.
 
-COPYRIGHT AND LICENCE
+  cgi_dir
+    Path from which to read CGI files. Can be relative to "$MYAPP_HOME/root"
+    or absolute. Defaults to "$MYAPP_HOME/root/cgi-bin".
 
-Copyright (C) 2008 Matt S. Trout
+  cgi_file_pattern
+    By default all files in "cgi_dir" will be loaded as CGIs, however, with
+    this option you can specify either a glob or a regex to match the names
+    of files you want to be loaded.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+    Can be an array of globs/regexes as well.
+
+METHODS
+  cgi_action
+    "$self->cgi_action($cgi)"
+
+    Takes a path to a CGI from "root/cgi-bin" such as "foo/bar.cgi" and
+    returns the action name it is registered as.
+
+  cgi_path
+    "$self->cgi_path($cgi)"
+
+    Takes a path to a CGI from "root/cgi-bin" such as "foo/bar.cgi" and
+    returns the public path it should be registered under.
+
+    The default is to prefix with "$cgi_root_path/", using the
+    "cgi_root_path" config setting, above.
+
+  is_perl_cgi
+    "$self->is_perl_cgi($path)"
+
+    Tries to figure out whether the CGI is Perl or not.
+
+    If it's Perl, it will be inlined into a sub instead of being forked off,
+    see "wrap_perl_cgi".
+
+  wrap_perl_cgi
+    "$self->wrap_perl_cgi($path, $action_name)"
+
+    Takes the path to a Perl CGI and returns a coderef suitable for passing
+    to cgi_to_response (from Catalyst::Controller::WrapCGI) using
+    CGI::Compile.
+
+    $action_name is the generated name for the action representing the CGI
+    file from "cgi_action".
+
+    This is similar to how ModPerl::Registry works, but will only work for
+    well-written CGIs. Otherwise, you may have to override this method to do
+    something more involved (see ModPerl::PerlRun.)
+
+    Scripts with "__DATA__" sections now work too, as well as scripts that
+    call "exit()".
+
+  wrap_nonperl_cgi
+    "$self->wrap_nonperl_cgi($path, $action_name)"
+
+    Takes the path to a non-Perl CGI and returns a coderef for executing it.
+
+    $action_name is the generated name for the action representing the CGI
+    file.
+
+    By default returns something like:
+
+        sub { system $path }
+
+SEE ALSO
+    Catalyst::Controller::WrapCGI, CatalystX::GlobalContext,
+    Catalyst::Controller, CGI, CGI::Compile, Catalyst
+
+BUGS
+    Please report any bugs or feature requests to
+    "bug-catalyst-controller-wrapcgi at rt.cpan.org", or through the web
+    interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Catalyst-Controller-Wrap
+    CGI>. I will be notified, and then you'll automatically be notified of
+    progress on your bug as I make changes.
+
+SUPPORT
+    More information at:
+
+    *   RT: CPAN's request tracker
+
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Catalyst-Controller-WrapCG
+        I>
+
+    *   AnnoCPAN: Annotated CPAN documentation
+
+        <http://annocpan.org/dist/Catalyst-Controller-WrapCGI>
+
+    *   CPAN Ratings
+
+        <http://cpanratings.perl.org/d/Catalyst-Controller-WrapCGI>
+
+    *   Search CPAN
+
+        <http://search.cpan.org/dist/Catalyst-Controller-WrapCGI>
+
+AUTHOR
+    See "AUTHOR" in Catalyst::Controller::WrapCGI and "CONTRIBUTORS" in
+    Catalyst::Controller::WrapCGI.
+
+COPYRIGHT & LICENSE
+    Copyright (c) 2008-2009 "AUTHOR" in Catalyst::Controller::WrapCGI and
+    "CONTRIBUTORS" in Catalyst::Controller::WrapCGI.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+

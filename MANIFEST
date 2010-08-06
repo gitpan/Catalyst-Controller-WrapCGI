@@ -8,6 +8,7 @@ inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
 inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
+inc/Module/Install/ReadmeFromPod.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Catalyst/Controller/CGIBin.pm
@@ -36,6 +37,7 @@ t/lib/TestCGIBin/root/cgi-bin/path/testdata.pl
 t/lib/TestCGIBin/root/cgi-bin/pathinfo.pl
 t/lib/TestCGIBin/root/cgi-bin/sigs.pl
 t/lib/TestCGIBin/root/cgi-bin/test.sh
+t/lib/TestCGIBin/root/cgi-bin/time.pl
 t/lib/TestCGIBinChainRoot.pm
 t/lib/TestCGIBinChainRoot/Controller/CGIHandler.pm
 t/lib/TestCGIBinChainRoot/root/cgi/path/test.pl

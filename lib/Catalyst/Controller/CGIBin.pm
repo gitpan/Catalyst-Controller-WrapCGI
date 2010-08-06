@@ -6,7 +6,6 @@ use mro 'c3';
 extends 'Catalyst::Controller::WrapCGI';
 
 use File::Find::Rule ();
-use Catalyst::Exception ();
 use File::Spec::Functions qw/splitdir abs2rel/;
 use IPC::Open3;
 use Symbol 'gensym';
@@ -24,7 +23,7 @@ Catalyst::Controller::CGIBin - Serve CGIs from root/cgi-bin
 
 =cut
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 =head1 SYNOPSIS
 
