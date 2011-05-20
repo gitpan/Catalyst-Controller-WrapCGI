@@ -1,6 +1,7 @@
 package Catalyst::Controller::CGIBin;
 
 use Moose;
+use Moose::Util::TypeConstraints;
 use mro 'c3';
 
 extends 'Catalyst::Controller::WrapCGI';
@@ -14,7 +15,7 @@ use IO::File ();
 use File::Temp 'tempfile';
 use File::pushd;
 use CGI::Compile;
- 
+
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -23,7 +24,7 @@ Catalyst::Controller::CGIBin - Serve CGIs from root/cgi-bin
 
 =cut
 
-our $VERSION = '0.030';
+our $VERSION = '0.031';
 
 =head1 SYNOPSIS
 
@@ -96,17 +97,29 @@ Can be an array of globs/regexes as well.
 
 =cut
 
-has cgi_root_path    => (is => 'ro', isa => 'Str', default => 'cgi-bin');
-has cgi_chain_root   => (is => 'ro', isa => 'Str');
-has cgi_dir          => (is => 'ro', isa => 'Str', default => 'cgi-bin');
-has cgi_file_pattern => (is => 'rw', default => sub { ['*'] });
+{ my $stringified = subtype as 'Str';
+  coerce $stringified,
+      from 'Object',
+      via { "$_" };
+
+  has cgi_root_path    => (is => 'ro', coerce => 1, isa => $stringified, default => 'cgi-bin' );
+  has cgi_chain_root   => (is => 'ro', isa => 'Str');
+  has cgi_dir          => (is => 'ro', coerce => 1, isa => $stringified, default => 'cgi-bin');
+  has cgi_file_pattern => (is => 'rw', default => sub { ['*'] });
+
+}
 
 sub register_actions {
     my ($self, $app) = @_;
 
-    my $cgi_bin = File::Spec->file_name_is_absolute($self->cgi_dir) ?
-        $self->cgi_dir
-        : $app->path_to('root', $self->cgi_dir);
+    my $cgi_bin;
+    if( File::Spec->file_name_is_absolute($self->cgi_dir) ) {
+        $cgi_bin = $self->cgi_dir;
+    } elsif( File::Spec->file_name_is_absolute( $app->config->{root} ) ) {
+        $cgi_bin = File::Spec->catdir( $app->config->{root}, $self->cgi_dir );
+    } else {
+        $cgi_bin = $app->path_to( $app->config->{root}, $self->cgi_dir);
+    }
 
     my $namespace = $self->action_namespace($app);
 

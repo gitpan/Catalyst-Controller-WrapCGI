@@ -11,7 +11,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 1.00'
+generated_by: 'Module::Install version 1.01'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -24,13 +24,13 @@ no_index:
 provides:
   Catalyst::Controller::CGIBin:
     file: lib/Catalyst/Controller/CGIBin.pm
-    version: 0.030
+    version: 0.031
   Catalyst::Controller::WrapCGI:
     file: lib/Catalyst/Controller/WrapCGI.pm
-    version: 0.030
+    version: 0.031
   CatalystX::GlobalContext:
     file: lib/CatalystX/GlobalContext.pm
-    version: 0.030
+    version: 0.031
 requires:
   CGI::Compile: 0.07
   Catalyst: 5.80015
@@ -48,4 +48,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Controller-WrapCGI.git
-version: 0.030
+version: 0.031

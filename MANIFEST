@@ -44,6 +44,12 @@ t/lib/TestCGIBinChainRoot/root/cgi/path/test.pl
 t/lib/TestCGIBinRoot.pm
 t/lib/TestCGIBinRoot/Controller/CGIHandler.pm
 t/lib/TestCGIBinRoot/root/cgi/path/test.pl
+t/lib/TestCGIBinRoot2.pm
+t/lib/TestCGIBinRoot2/another_root/cgi/path/test.pl
+t/lib/TestCGIBinRoot2/Controller/CGIHandler.pm
+t/lib/TestCGIBinRoot3.pm
+t/lib/TestCGIBinRoot3/Controller/CGIHandler.pm
+t/lib/TestCGIBinRoot3/root/cgi/path/test.pl
 t/lib/TestGC.pm
 t/lib/TestGC/Controller/Root.pm
 t/pod.t
