@@ -103,6 +103,12 @@ METHODS
     Scripts with "__DATA__" sections now work too, as well as scripts that
     call "exit()".
 
+  cgi_package
+    "$self->cgi_package($action_name)"
+
+    Returns the package name a Perl CGI is compiled into for a given
+    $action_name.
+
   wrap_nonperl_cgi
     "$self->wrap_nonperl_cgi($path, $action_name)"
 
