@@ -23,7 +23,8 @@ my (
     $UpgradeDeps
 );
 my ( $PostambleActions, $PostambleActionsNoTest, $PostambleActionsUpgradeDeps,
-    $PostambleActionsUpgradeDepsNoTest, $PostambleUsed, $NoTest);
+    $PostambleActionsUpgradeDepsNoTest, $PostambleActionsDepsList,
+    $PostambleActionsAllDepsList, $PostambleUsed, $NoTest);
 
 # See if it's a testing or non-interactive session
 _accept_default( $ENV{AUTOMATED_TESTING} or ! -t STDIN ); 
@@ -381,10 +382,7 @@ sub install {
         @modules = @newmod;
     }
 
-    if ( _has_cpanminus() and not ($ENV{PERL_AUTOINSTALL_PREFER_CPANPLUS}
-            || $ENV{PERL_AUTOINSTALL_PREFER_CPAN}) ) {
-        _install_cpanminus( \@modules, \@config );
-    } elsif ( _has_cpanplus() and not $ENV{PERL_AUTOINSTALL_PREFER_CPAN} ) {
+    if ( _has_cpanplus() and not $ENV{PERL_AUTOINSTALL_PREFER_CPAN} ) {
         _install_cpanplus( \@modules, \@config );
     } else {
         _install_cpan( \@modules, \@config );
@@ -598,50 +596,6 @@ sub _install_cpan {
     return $installed;
 }
 
-sub _install_cpanminus {
-    my @modules   = @{ +shift };
-    my $config    = _cpanminus_config( @{ +shift } );
-    my $installed = 0;
-
-    while ( my ( $pkg, $ver ) = splice( @modules, 0, 2 ) ) {
-        print "*** Installing $pkg...\n";
-
-        MY::preinstall( $pkg, $ver ) or next if defined &MY::preinstall;
-
-        my $success;
-
-        system "cpanm $config $pkg";
-
-        eval "use $pkg $ver ();";
-        $success = $@ ? 0 : 1;
-
-        if ( $success ) {
-            print "*** $pkg successfully installed.\n";
-        } else {
-            print "*** $pkg installation unsuccessful.\n";
-        }
-
-        $installed += $success;
-
-        MY::postinstall( $pkg, $ver, $success ) if defined &MY::postinstall;
-    }
-
-    return $installed;
-}
-
-sub _cpanminus_config {
-    my @config = ();
-    while ( @_ ) {
-        my ($key, $value) = (shift(), shift());
-        if ( $key eq 'force' ) {
-            push @config, '--force' if $value;
-        } elsif ( $key eq 'notest' ) {
-            push @config, '--notest' if $value;
-        }
-    }
-    return join ' ', @config;
-}
-
 sub _has_cpanplus {
     return (
         $HasCPANPLUS = (
@@ -649,18 +603,6 @@ sub _has_cpanplus {
               or _load('CPANPLUS::Shell::Default')
         )
     );
-}
-
-sub _has_cpanminus {
-    require IPC::Open3;
-    require File::Spec;
-    require Symbol;
-
-    my $out = Symbol::gensym;
-
-    IPC::Open3::open3(Symbol::gensym, $out, Symbol::gensym, 'cpanm --version');
-
-    return <$out> =~ /App::cpanminus/;
 }
 
 # make guesses on whether we're under the CPAN installation directory
@@ -886,6 +828,16 @@ sub _make_args {
     $PostambleActionsUpgradeDepsNoTest =
         "\$(PERL) $0 --config=$config_notest --upgradedeps=$deps_list";
 
+    $PostambleActionsDepsList =
+        '@$(PERL) -le "print for @ARGV" '
+            . join(' ', map $Missing[$_], grep $_ % 2 == 0, 0..$#Missing);
+
+    my @all = (@Missing, @Existing);
+
+    $PostambleActionsAllDepsList =
+        '@$(PERL) -le "print for @ARGV" '
+            . join(' ', map $all[$_], grep $_ % 2 == 0, 0..$#all);
+
     return %args;
 }
 
@@ -933,17 +885,23 @@ AUTO_INSTALL
 checkdeps ::
 \t\$(PERL) $0 --checkdeps
 
+installdeps ::
+\t$PostambleActions
+
+installdeps_notest ::
+\t$PostambleActionsNoTest
+
 upgradedeps ::
 \t$PostambleActionsUpgradeDeps
 
 upgradedeps_notest ::
 \t$PostambleActionsUpgradeDepsNoTest
 
-installdeps ::
-\t$PostambleActions
+depslist ::
+\t$PostambleActionsDepsList
 
-installdeps_notest ::
-\t$PostambleActionsNoTest
+alldepslist ::
+\t$PostambleActionsAllDepsList
 
 END_MAKE
 
@@ -954,4 +912,4 @@ END_MAKE
 
 __END__
 
-#line 1215
+#line 1178
