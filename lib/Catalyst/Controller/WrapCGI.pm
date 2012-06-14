@@ -21,7 +21,7 @@ Catalyst::Controller::WrapCGI - Run CGIs in Catalyst
 
 =cut
 
-our $VERSION = '0.034';
+our $VERSION = '0.035';
 
 =head1 SYNOPSIS
 
@@ -163,7 +163,7 @@ sub wrap_cgi {
   if ($body) { # Slurp from body filehandle
     local $/; $body_content = <$body>;
   } else {
-    my $body_params = $c->req->body_parameters;
+    my $body_params = $c->req->body_parameters || {};
 
     if (my %uploads = %{ $c->req->uploads }) {
       my $post = POST 'http://localhost/',
@@ -388,9 +388,11 @@ Matt S. Trout C<< <mst at shadowcat.co.uk> >>
 
 =head1 CONTRIBUTORS
 
-Rafael Kitover C<< <rkitover at cpan.org> >>
+Caelum: Rafael Kitover <rkitover@cpan.org>
 
-Hans Dieter Pearcey C<< <hdp at cpan.org> >>
+confound: Hans Dieter Pearcey <hdp@cpan.org>
+
+rbuels: Robert Buels <rbuels@gmail.com>
 
 Some code stolen from Tatsuhiko Miyagawa's L<CGI::Compile>.
 
